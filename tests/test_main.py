@@ -8,6 +8,7 @@ from telegram.constants import ParseMode
 from bot.config import Settings
 from bot.main import (
     SETTINGS_KEY,
+    channel_prices_command,
     post_init,
     prices_command,
     start_command,
@@ -124,6 +125,70 @@ async def test_prices_command_handles_service_error() -> None:
     sent_text = message.reply_text.await_args.args[0]
 
     assert "دریافت قیمت‌ها با خطا مواجه شد" in sent_text
+
+
+@pytest.mark.asyncio
+async def test_channel_prices_command_publishes_prices() -> None:
+    settings = make_settings()
+
+    application = SimpleNamespace(
+        bot_data={SETTINGS_KEY: settings},
+    )
+    context = SimpleNamespace(
+        application=application,
+    )
+
+    with patch(
+        "bot.main.publish_prices",
+        new_callable=AsyncMock,
+    ) as mocked_publish:
+        await channel_prices_command(
+            update=MagicMock(),
+            context=context,
+        )
+
+    mocked_publish.assert_awaited_once_with(
+        application=application,
+        settings=settings,
+    )
+
+
+@pytest.mark.asyncio
+async def test_channel_prices_command_handles_publish_error() -> None:
+    settings = make_settings()
+
+    application = SimpleNamespace(
+        bot_data={SETTINGS_KEY: settings},
+    )
+    context = SimpleNamespace(
+        application=application,
+    )
+
+    with (
+        patch(
+            "bot.main.publish_prices",
+            new_callable=AsyncMock,
+        ) as mocked_publish,
+        patch(
+            "bot.main.logger.exception"
+        ) as mocked_logger,
+    ):
+        mocked_publish.side_effect = RuntimeError(
+            "Telegram unavailable."
+        )
+
+        await channel_prices_command(
+            update=MagicMock(),
+            context=context,
+        )
+
+    mocked_publish.assert_awaited_once_with(
+        application=application,
+        settings=settings,
+    )
+    mocked_logger.assert_called_once_with(
+        "Could not publish prices from channel command."
+    )
 
 
 @pytest.mark.asyncio
