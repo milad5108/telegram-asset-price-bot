@@ -77,6 +77,68 @@ async def test_daily_price_job_calls_publish_prices() -> None:
 
 
 @pytest.mark.asyncio
+async def test_daily_price_job_requires_job_context() -> None:
+    context = SimpleNamespace(
+        application=MagicMock(),
+        job=None,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Scheduled job context is missing",
+    ):
+        await daily_price_job(context)
+
+
+@pytest.mark.asyncio
+async def test_daily_price_job_requires_valid_settings() -> None:
+    context = SimpleNamespace(
+        application=MagicMock(),
+        job=SimpleNamespace(data=object()),
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Scheduled job does not contain valid settings",
+    ):
+        await daily_price_job(context)
+
+
+@pytest.mark.asyncio
+async def test_daily_price_job_logs_publish_error() -> None:
+    settings = make_settings()
+    application = MagicMock()
+
+    context = SimpleNamespace(
+        application=application,
+        job=SimpleNamespace(data=settings),
+    )
+
+    with (
+        patch(
+            "bot.scheduler.publish_prices",
+            new_callable=AsyncMock,
+        ) as mocked_publish,
+        patch(
+            "bot.scheduler.logger.exception"
+        ) as mocked_logger,
+    ):
+        mocked_publish.side_effect = RuntimeError(
+            "Telegram unavailable."
+        )
+
+        await daily_price_job(context)
+
+    mocked_publish.assert_awaited_once_with(
+        application=application,
+        settings=settings,
+    )
+    mocked_logger.assert_called_once_with(
+        "Scheduled price publication failed."
+    )
+
+
+@pytest.mark.asyncio
 async def test_publish_prices_sends_html_message() -> None:
     settings = make_settings()
 
