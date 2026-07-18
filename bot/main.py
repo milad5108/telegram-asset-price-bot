@@ -8,12 +8,17 @@ from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
+    MessageHandler,
+    filters,
 )
 
 from bot.config import Settings, load_settings
 from bot.message_formatter import format_price_message
 from bot.price_service import PriceService, PriceServiceError
-from bot.scheduler import schedule_daily_price_job
+from bot.scheduler import (
+    publish_prices,
+    schedule_daily_price_job,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -91,6 +96,27 @@ async def prices_command(
     )
 
 
+async def channel_prices_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+) -> None:
+    """Publish current prices when /prices is posted in the channel."""
+
+    del update
+
+    settings = _get_settings(context.application)
+
+    try:
+        await publish_prices(
+            application=context.application,
+            settings=settings,
+        )
+    except Exception:
+        logger.exception(
+            "Could not publish prices from channel command."
+        )
+
+
 async def post_init(application: Application) -> None:
     """Register scheduled jobs after Telegram initialization."""
 
@@ -147,9 +173,21 @@ def build_application(settings: Settings) -> Application:
     application.add_handler(
         CommandHandler("start", start_command)
     )
+
     application.add_handler(
         CommandHandler("prices", prices_command)
     )
+
+    application.add_handler(
+        MessageHandler(
+            filters.UpdateType.CHANNEL_POSTS
+            & filters.Regex(
+                r"^/prices(?:@MiladAssetPriceBot)?(?:\s|$)"
+            ),
+            channel_prices_command,
+        )
+    )
+
     application.add_error_handler(error_handler)
 
     return application
@@ -166,6 +204,9 @@ def main() -> None:
         level=logging.INFO,
     )
 
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    
     settings = load_settings()
     application = build_application(settings)
 
