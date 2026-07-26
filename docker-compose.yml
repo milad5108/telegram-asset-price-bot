@@ -1,0 +1,10 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: telegram-asset-price-bot:latest
+    container_name: telegram-asset-price-bot
+    env_file:
+      - .env
+    restart: unless-stopped
