@@ -1,5 +1,9 @@
 # Telegram Asset Price Bot
 
+[![CI](https://github.com/milad5108/telegram-asset-price-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/milad5108/telegram-asset-price-bot/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Docker](https://img.shields.io/badge/Docker-supported-blue)
+
 > **Production-ready Telegram bot for cryptocurrency and precious-metal
 > price tracking with Python, Docker and Telegram Bot API.**
 
