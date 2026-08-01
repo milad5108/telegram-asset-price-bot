@@ -144,4 +144,8 @@ GitHub: https://github.com/milad5108
 
 This project is intended for educational and portfolio purposes.
 
-A formal MIT License will be added in a future release.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Architecture
+
+See the [project architecture diagram](ARCHITECTURE.md) for an overview of the application components and data flow.
